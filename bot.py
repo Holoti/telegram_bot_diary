@@ -12,98 +12,66 @@ db_thing = DBThing()
 from dotenv import dotenv_values
 config = dotenv_values(".env")
 
-def change_menu(new_menu: Menu, uid: int) -> None:
-    global CURRENT_MENUS
-    CURRENT_MENUS[uid] = new_menu
 
-def respond(update: Update, context: CallbackContext, uid: int) -> None:
-    print("resond")
-    if CURRENT_MENUS[uid].overrideable:
+def respond(update: Update, context: CallbackContext, new_menu: Menu, uid: int, change_menu: bool = True) -> None:
+    global CURRENT_MENUS
+    OLD_MENU: Menu = None
+    if CURRENT_MENUS.get(uid) is not None:
+        OLD_MENU = CURRENT_MENUS[uid]
+    if change_menu:
+        CURRENT_MENUS[uid] = new_menu
+    # if OLD_MENU is not None and OLD_MENU.overrideable and update.callback_query is not None:
         update.callback_query.message.edit_text(
-            CURRENT_MENUS[uid].text,
+            new_menu.text,
             ParseMode.HTML,
-            reply_markup=CURRENT_MENUS[uid].markup
+            reply_markup=new_menu.markup
         )
     else:
-        update.callback_query.message.edit_reply_markup()
+        if update.callback_query is not None:
+            update.callback_query.message.edit_reply_markup()
         context.bot.send_message(
-            update.callback_query.from_user.id,
-            CURRENT_MENUS[uid].text,
+            # update.callback_query.from_user.id,
+            uid,
+            new_menu.text,
             parse_mode=ParseMode.HTML,
-            reply_markup=CURRENT_MENUS[uid].markup
+            reply_markup=new_menu.markup
         )
+
 
 def start(update: Update, context: CallbackContext) -> None:
     global CURRENT_MENUS
     uid: int = update.message.from_user.id
-    CURRENT_MENUS[uid] = WELCOME_MENU
     db_thing.add_user(
         uid,
         update.message.from_user.username,
         update.message.from_user.first_name,
         update.message.from_user.last_name
     )
-    context.bot.send_message(
-        update.message.from_user.id,
-        CURRENT_MENUS[uid].text,
-        parse_mode=ParseMode.HTML,
-        reply_markup=CURRENT_MENUS[uid].markup
-    )
+    respond(update, context, WELCOME_MENU, uid)
+
 
 def forget_me(update: Update, context: CallbackContext) -> None:
     global CURRENT_MENUS
     uid: int = update.message.from_user.id
-    CURRENT_MENUS[uid] = FORGET_ME_MENU
-    context.bot.send_message(
-        update.message.from_user.id,
-        CURRENT_MENUS[uid].text,
-        parse_mode=ParseMode.HTML,
-        reply_markup=CURRENT_MENUS[uid].markup
-    )
+    respond(update, context, FORGET_ME_MENU, uid)
 
 
 def button_tap(update: Update, context: CallbackContext) -> None:
-    """
-    This handler processes the inline buttons on the menu
-    """
     global CURRENT_MENUS
     uid: int = update.callback_query.from_user.id
-
     data = update.callback_query.data
 
     if data == WELCOME_MENU.buttons[0]:
-        CURRENT_MENUS[uid] = EVENING_TIME_MENU
+        respond(update, context, EVENING_TIME_MENU, uid)
     elif data == MAIN_MENU.buttons[0]:
-        CURRENT_MENUS[uid] = SETTINGS_MENU
+        respond(update, context, SETTINGS_MENU, uid)
     elif data == SETTINGS_MENU.buttons[0]:
-        CURRENT_MENUS[uid] = EVENING_TIME_MENU
+        respond(update, context, EVENING_TIME_MENU, uid)
     elif data == SETTINGS_MENU.buttons[1]:
-        CURRENT_MENUS[uid] = MORNING_TIME_MENU
+        respond(update, context, MORNING_TIME_MENU, uid)
 
     # Close the query to end the client-side loading animation
     update.callback_query.answer()
-
-    # Update message content with corresponding menu section
-    # update.callback_query.message.edit_text(
-    #     CURRENT_MENU.text,
-    #     ParseMode.HTML,
-    #     reply_markup=CURRENT_MENU.markup
-    # )
-    respond(update, context, uid)
-    # if CURRENT_MENUS[uid].overrideable:
-    #     update.callback_query.message.edit_text(
-    #         CURRENT_MENUS[uid].text,
-    #         ParseMode.HTML,
-    #         reply_markup=CURRENT_MENUS[uid].markup
-    #     )
-    # else:
-    #     update.callback_query.message.edit_reply_markup()
-    #     context.bot.send_message(
-    #         update.callback_query.from_user.id,
-    #         CURRENT_MENUS[uid].text,
-    #         parse_mode=ParseMode.HTML,
-    #         reply_markup=CURRENT_MENUS[uid].markup
-    #     )
 
 
 def message_handler(update: Update, context: CallbackContext) -> None:
@@ -113,50 +81,29 @@ def message_handler(update: Update, context: CallbackContext) -> None:
 
     if CURRENT_MENUS[uid] == EVENING_TIME_MENU or CURRENT_MENUS[uid] == MORNING_TIME_MENU:
         if re.search("^([0-9]|0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$", update.message.text) == None:
-            context.bot.send_message(
-                update.message.from_user.id,
-                "Неверный формат времени. Попробуй ещё раз: hh:mm"
-            )
+            respond(update, context, WRONG_TIME_FORMAT_MENU, uid, False)
+            # context.bot.send_message(
+            #     uid,
+            #     "Неверный формат времени. Попробуй ещё раз: hh:mm"
+            # )
         else:
             if CURRENT_MENUS[uid] == EVENING_TIME_MENU:
                 db_thing.set_user_setting(update.message.from_user.id, evening_time=update.message.text)
-                CURRENT_MENUS[uid] = MORNING_TIME_MENU
-                context.bot.send_message(
-                    update.message.from_user.id,
-                    CURRENT_MENUS[uid].text,
-                    parse_mode=ParseMode.HTML,
-                    reply_markup=CURRENT_MENUS[uid].markup
-                )
+                respond(update, context, MORNING_TIME_MENU, uid)
             elif CURRENT_MENUS[uid] == MORNING_TIME_MENU:
                 db_thing.set_user_setting(update.message.from_user.id, morning_time=update.message.text)
-                CURRENT_MENUS[uid] = CONFIRMED_TIME_MENU
-                context.bot.send_message(
-                    update.message.from_user.id,
-                    CURRENT_MENUS[uid].text,
-                    parse_mode=ParseMode.HTML,
-                    reply_markup=CURRENT_MENUS[uid].markup
-                )
-                CURRENT_MENUS[uid] = MAIN_MENU
-                context.bot.send_message(
-                    update.message.from_user.id,
-                    CURRENT_MENUS[uid].text,
-                    parse_mode=ParseMode.HTML,
-                    reply_markup=CURRENT_MENUS[uid].markup
-                )
-            # context.bot.send_message(
-            #     update.message.from_user.id,
-            #     f"Время установлено на {update.message.text} МСК."
-            # )
-            # config.evening_time.change(update.message.text)
+                respond(update, context, CONFIRMED_TIME_MENU, uid)
+                respond(update, context, MAIN_MENU, uid)
     
-    if CURRENT_MENUS[uid] == FORGET_ME_MENU:
+    elif CURRENT_MENUS[uid] == FORGET_ME_MENU:
         if update.message.text == 'Да, я хочу удалить данные.':
-            context.bot.send_message(
-                update.message.from_user.id,
-                "Все данные удалены. Если хотите начать заново, отправьте команду /start"
-            )
+            respond(update, context, USER_FORGOTTEN_MENU, uid)
+            # context.bot.send_message(
+            #     uid,
+            #     "Все данные удалены. Если хотите начать заново, отправьте команду /start"
+            # )
             db_thing.forget_user(update.message.from_user.id)
-            CURRENT_MENUS[uid] = None
+            del CURRENT_MENUS[uid]
 
 
 def main() -> None:

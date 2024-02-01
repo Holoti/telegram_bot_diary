@@ -46,6 +46,12 @@ SETTINGS_MENU = Menu(
     overrideable=True,
     buttons=["Вечернее время", "Утреннее время"]
 )
+WRONG_TIME_FORMAT_MENU = Menu(
+    "Неверный формат времени. Попробуй ещё раз: hh:mm"
+)
+USER_FORGOTTEN_MENU = Menu(
+    "Все данные удалены. Если хотите начать заново, отправьте команду /start"
+)
 
 # this thing stores the last message sent by the bot for each user.
 # the key is user's telegram uid; the value is last message sent by the bot.
