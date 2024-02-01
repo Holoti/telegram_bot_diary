@@ -1,6 +1,7 @@
 # использовать библиотеку datatime
 
 import re
+import datetime
 
 from telegram import Update, ParseMode
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, CallbackQueryHandler
@@ -30,7 +31,6 @@ def respond(update: Update, context: CallbackContext, new_menu: Menu, uid: int, 
         if update.callback_query is not None:
             update.callback_query.message.edit_reply_markup()
         context.bot.send_message(
-            # update.callback_query.from_user.id,
             uid,
             new_menu.text,
             parse_mode=ParseMode.HTML,
@@ -39,7 +39,6 @@ def respond(update: Update, context: CallbackContext, new_menu: Menu, uid: int, 
 
 
 def start(update: Update, context: CallbackContext) -> None:
-    global CURRENT_MENUS
     uid: int = update.message.from_user.id
     db_thing.add_user(
         uid,
@@ -51,13 +50,11 @@ def start(update: Update, context: CallbackContext) -> None:
 
 
 def forget_me(update: Update, context: CallbackContext) -> None:
-    global CURRENT_MENUS
     uid: int = update.message.from_user.id
     respond(update, context, FORGET_ME_MENU, uid)
 
 
 def button_tap(update: Update, context: CallbackContext) -> None:
-    global CURRENT_MENUS
     uid: int = update.callback_query.from_user.id
     data = update.callback_query.data
 
@@ -74,34 +71,42 @@ def button_tap(update: Update, context: CallbackContext) -> None:
     update.callback_query.answer()
 
 
+def set_time(update: Update, context: CallbackContext, time_str: str, uid: int) -> str:
+    if re.match("^([0-9]|0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$", update.message.text) is None:
+        return "wrong time format"
+    
+    if CURRENT_MENUS[uid] == EVENING_TIME_MENU:
+        if len(time_str) == 4: # h:mm
+            time_str = '0' + time_str
+        ev_time = datetime.time(int(time_str[:2]), int(time_str[3:5]))
+        db_thing.set_user_setting(uid, evening_time=ev_time)
+        return "set evening time"
+    elif CURRENT_MENUS[uid] == MORNING_TIME_MENU:
+        if len(time_str) == 4: # h:mm
+            time_str = '0' + time_str
+        mo_time = datetime.time(int(time_str[:2]), int(time_str[3:5]))
+        db_thing.set_user_setting(uid, morning_time=mo_time)
+        return "set morning time"
+    return "wrong menu"
+
+
 def message_handler(update: Update, context: CallbackContext) -> None:
-    global CURRENT_MENUS
     uid: int = update.message.from_user.id
-    print("message recieved!", update.message.text)
 
     if CURRENT_MENUS[uid] == EVENING_TIME_MENU or CURRENT_MENUS[uid] == MORNING_TIME_MENU:
-        if re.search("^([0-9]|0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$", update.message.text) == None:
+        set_time_result = set_time(update, context, update.message.text, uid)
+        if set_time_result == "wrong time format":
             respond(update, context, WRONG_TIME_FORMAT_MENU, uid, False)
-            # context.bot.send_message(
-            #     uid,
-            #     "Неверный формат времени. Попробуй ещё раз: hh:mm"
-            # )
         else:
-            if CURRENT_MENUS[uid] == EVENING_TIME_MENU:
-                db_thing.set_user_setting(update.message.from_user.id, evening_time=update.message.text)
+            if CURRENT_MENUS[uid] == EVENING_TIME_MENU and db_thing.get_user_setting(uid)[1] is None:
                 respond(update, context, MORNING_TIME_MENU, uid)
-            elif CURRENT_MENUS[uid] == MORNING_TIME_MENU:
-                db_thing.set_user_setting(update.message.from_user.id, morning_time=update.message.text)
+            else:
                 respond(update, context, CONFIRMED_TIME_MENU, uid)
                 respond(update, context, MAIN_MENU, uid)
     
     elif CURRENT_MENUS[uid] == FORGET_ME_MENU:
         if update.message.text == 'Да, я хочу удалить данные.':
             respond(update, context, USER_FORGOTTEN_MENU, uid)
-            # context.bot.send_message(
-            #     uid,
-            #     "Все данные удалены. Если хотите начать заново, отправьте команду /start"
-            # )
             db_thing.forget_user(update.message.from_user.id)
             del CURRENT_MENUS[uid]
 
