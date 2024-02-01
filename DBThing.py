@@ -49,6 +49,10 @@ class DBThing:
         self.connection.commit()
         return True
 
+    def get_user(self, uid: int) -> tuple:
+        result = self.cursor.execute(f'SELECT * FROM Users WHERE uid={uid}').fetchone()
+        return result
+
     def set_user_setting(self, uid: int, evening_time: str = None, morning_time: str = None) -> bool:
         if evening_time is None and morning_time is None:
             print(f"No time given! uid={uid}")
@@ -62,7 +66,7 @@ class DBThing:
         return True
 
     def get_user_setting(self, uid: int) -> tuple:
-        result = self.cursor.execute(f'SELECT evening_time, morning_time FROM UserSettings WHERE uid = {uid}').fetchone()
+        result = self.cursor.execute(f'SELECT evening_time, morning_time FROM UserSettings WHERE uid={uid}').fetchone()
         return result
 
     def forget_user(self, uid: int):

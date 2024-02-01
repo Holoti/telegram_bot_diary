@@ -40,6 +40,11 @@ def respond(update: Update, context: CallbackContext, new_menu: Menu, uid: int, 
 
 def start(update: Update, context: CallbackContext) -> None:
     uid: int = update.message.from_user.id
+
+    if db_thing.get_user(uid):
+        respond(update, context, MAIN_MENU, uid)
+        return
+
     db_thing.add_user(
         uid,
         update.message.from_user.username,
