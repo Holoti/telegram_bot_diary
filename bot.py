@@ -2,7 +2,7 @@
 
 import re
 
-from telegram import Update, ForceReply, ParseMode
+from telegram import Update, ParseMode
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, CallbackQueryHandler
 
 from Menu import *
@@ -20,7 +20,7 @@ def respond(update: Update, context: CallbackContext, new_menu: Menu, uid: int, 
         OLD_MENU = CURRENT_MENUS[uid]
     if change_menu:
         CURRENT_MENUS[uid] = new_menu
-    # if OLD_MENU is not None and OLD_MENU.overrideable and update.callback_query is not None:
+    if OLD_MENU is not None and OLD_MENU.overrideable and update.callback_query is not None:
         update.callback_query.message.edit_text(
             new_menu.text,
             ParseMode.HTML,
