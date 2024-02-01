@@ -1,4 +1,5 @@
 import sqlite3
+import datetime
 
 class DBThing:
     """
@@ -49,7 +50,7 @@ class DBThing:
         return True
 
     def set_user_setting(self, uid: int, evening_time: str = None, morning_time: str = None) -> bool:
-        if evening_time == None and morning_time == None:
+        if evening_time is None and morning_time is None:
             print(f"No time given! uid={uid}")
             return False
 
@@ -60,14 +61,12 @@ class DBThing:
         self.connection.commit()
         return True
 
+    def get_user_setting(self, uid: int) -> tuple:
+        result = self.cursor.execute(f'SELECT evening_time, morning_time FROM UserSettings WHERE uid = {uid}').fetchone()
+        return result
+
     def forget_user(self, uid: int):
-        request = (
-            f"DELETE FROM Users WHERE uid={uid}"
-        )
-        self.cursor.execute(request)
-        request = (
-            f"DELETE FROM UserSettings WHERE uid={uid}"
-        )
-        self.cursor.execute(request)
+        self.cursor.execute(f'DELETE FROM Users WHERE uid={uid}')
+        self.cursor.execute(f'DELETE FROM UserSettings WHERE uid={uid}')
         self.connection.commit()
 
