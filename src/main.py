@@ -15,7 +15,7 @@ from bot_features.message_handler import message_handler
 
 
 def main() -> None:
-    config = dotenv_values(".env")
+    config = dotenv_values("src/.env")
     updater = Updater(config["token"])
     dispatcher = updater.dispatcher
 
