@@ -1,9 +1,9 @@
 from telegram.ext import (
-    Updater,
     CommandHandler,
     MessageHandler,
-    Filters,
-    CallbackQueryHandler
+    filters,
+    CallbackQueryHandler,
+    Application
 )
 from dotenv import dotenv_values
 from bot_features.command_handlers import (
@@ -16,19 +16,36 @@ from bot_features.message_handler import message_handler
 
 def main() -> None:
     config = dotenv_values("src/.env")
-    updater = Updater(config["token"])
-    dispatcher = updater.dispatcher
 
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("forget_me", forget_me))
+    application = (
+        Application.builder()
+        .token(config["token"])
+        .arbitrary_callback_data(True)
+        .concurrent_updates(True)
+        .build()
+    )
 
-    dispatcher.add_handler(CallbackQueryHandler(button_tap))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("forget_me", forget_me))
 
-    dispatcher.add_handler(MessageHandler(~Filters.command, message_handler))
+    application.add_handler(CallbackQueryHandler(button_tap))
 
-    updater.start_polling()
+    application.add_handler(MessageHandler(~filters.COMMAND, message_handler))
 
-    updater.idle()
+    application.run_polling()
+
+    # dispatcher = updater.dispatcher
+
+    # dispatcher.add_handler(CommandHandler("start", start))
+    # dispatcher.add_handler(CommandHandler("forget_me", forget_me))
+
+    # dispatcher.add_handler(CallbackQueryHandler(button_tap))
+
+    # dispatcher.add_handler(MessageHandler(~Filters.command, message_handler))
+
+    # updater.start_polling()
+
+    # updater.idle()
 
 
 if __name__ == "__main__":
