@@ -1,5 +1,5 @@
 import sqlite3
-import datetime
+
 
 class DBThing:
     """
@@ -11,7 +11,7 @@ class DBThing:
         self.create_user_settings_table()
 
     def init_sql(self):
-        self.connection = sqlite3.connect("database.sqlite", check_same_thread=False)
+        self.connection = sqlite3.connect("src/database/database.sqlite", check_same_thread=False)
         self.cursor = self.connection.cursor()
 
     def create_users_table(self):
@@ -74,3 +74,5 @@ class DBThing:
         self.cursor.execute(f'DELETE FROM UserSettings WHERE uid={uid}')
         self.connection.commit()
 
+
+db_thing = DBThing()
