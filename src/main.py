@@ -13,6 +13,10 @@ from bot_features.command_handlers import (
 from bot_features.callback_handler import button_tap
 from bot_features.message_handler import message_handler
 
+# TODO: анализ данных юзера (построение графиков и пр.)
+# TODO: настроить venv
+# TODO:
+
 
 def main() -> None:
     config = dotenv_values("src/.env")
