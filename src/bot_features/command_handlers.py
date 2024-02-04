@@ -14,7 +14,6 @@ async def start(update: Update, context: CallbackContext) -> None:
 
     user = await db_thing.get_user(uid)
     if user:
-        print(f'{user=}')
         await respond(update, context, MAIN_MENU, uid)
         return
 
