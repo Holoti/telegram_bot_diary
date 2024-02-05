@@ -1,17 +1,30 @@
+from telegram import Bot, Update
 from telegram.ext import (
     CommandHandler,
     MessageHandler,
     filters,
     CallbackQueryHandler,
-    Application
+    Application,
+    ConversationHandler
 )
 from dotenv import dotenv_values
-from bot_features.command_handlers import (
-    start,
-    forget_me
+from constants import (
+    State,
+    BOT_TOKEN
 )
-from bot_features.callback_handler import button_tap
-from bot_features.message_handler import message_handler
+from bot_features.start_conversation import (
+    start,
+    select_metric_name,
+    select_metric_time
+)
+import logging
+
+
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
 
 
 def main() -> None:
@@ -19,33 +32,27 @@ def main() -> None:
 
     application = (
         Application.builder()
-        .token(config["token"])
+        .token(BOT_TOKEN)
         .arbitrary_callback_data(True)
-        .concurrent_updates(True)
+        #// .concurrent_updates(False)
         .build()
     )
 
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("forget_me", forget_me))
+    print(application.bot.token)
 
-    application.add_handler(CallbackQueryHandler(button_tap))
+    start_conv_handler = ConversationHandler(
+        block=False,
+        entry_points=[CommandHandler("start", start)],
+        states={
+            State.SELECT_METRIC_NAME: [MessageHandler(None, select_metric_name)],
+            State.SELECT_METRIC_TIME: [MessageHandler(None, select_metric_time)],
+        },
+        fallbacks=[]
+    )
+    application.add_handler(start_conv_handler)
 
-    application.add_handler(MessageHandler(~filters.COMMAND, message_handler))
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
-    application.run_polling()
-
-    # dispatcher = updater.dispatcher
-
-    # dispatcher.add_handler(CommandHandler("start", start))
-    # dispatcher.add_handler(CommandHandler("forget_me", forget_me))
-
-    # dispatcher.add_handler(CallbackQueryHandler(button_tap))
-
-    # dispatcher.add_handler(MessageHandler(~Filters.command, message_handler))
-
-    # updater.start_polling()
-
-    # updater.idle()
 
 
 if __name__ == "__main__":
