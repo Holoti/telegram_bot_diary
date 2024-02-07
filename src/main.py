@@ -9,14 +9,20 @@ from telegram.ext import (
 )
 from dotenv import dotenv_values
 from constants import (
+    Button,
     State,
     BOT_TOKEN
 )
-from bot_features.start_conversation import (
+from bot_features.add_metric import (
     start,
+    create_metric,
+    select_metric_type,
     select_metric_name,
-    select_metric_time
+    select_metric_time,
+    skip_metric_time,
+    cancel
 )
+from bot_features.about import about
 import logging
 
 
@@ -34,22 +40,29 @@ def main() -> None:
         Application.builder()
         .token(BOT_TOKEN)
         .arbitrary_callback_data(True)
-        #// .concurrent_updates(False)
+        .concurrent_updates(False)
         .build()
     )
 
-    print(application.bot.token)
-
     start_conv_handler = ConversationHandler(
         block=False,
-        entry_points=[CommandHandler("start", start)],
+        entry_points=[
+            CommandHandler("start", start),
+            MessageHandler(filters.Regex(f'^{Button.CREATE_METRIC.value}$'), create_metric)
+        ],
         states={
-            State.SELECT_METRIC_NAME: [MessageHandler(None, select_metric_name)],
-            State.SELECT_METRIC_TIME: [MessageHandler(None, select_metric_time)],
+            State.SELECT_METRIC_TYPE: [CallbackQueryHandler(select_metric_type)],
+            State.SELECT_METRIC_NAME: [MessageHandler(~filters.COMMAND, select_metric_name)],
+            State.SELECT_METRIC_TIME: [
+                CommandHandler('skip', skip_metric_time),
+                MessageHandler(~filters.Regex('^/skip$') & ~filters.COMMAND, callback=select_metric_time)
+            ]
         },
-        fallbacks=[]
+        fallbacks=[CommandHandler('cancel', cancel)]
     )
     application.add_handler(start_conv_handler)
+
+    application.add_handler(MessageHandler(filters.Regex(Button.ABOUT.value), about))
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
