@@ -55,7 +55,7 @@ async def select_metric_type(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def select_metric_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         'Записал. Теперь нужно выбрать время сбора данных.\n'
-        'Время должно быть указано в формате hh:mm в часовом поясе МСК.\n' #TODO сделать выбор часового пояса
+        'Время должно быть указано в формате hh:mm в часовом поясе МСК.\n' #TODO Сделать выбор часового пояса
         'Ты можешь написать /skip, если не хочешь, чтобы чтобы данные собирались регулярно.\n'
         'Тогда ты сможешь сам добавить запись в любой момент.'
     )
