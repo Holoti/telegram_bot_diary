@@ -28,7 +28,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return State.SELECT_METRIC_TYPE
 
 
-async def create_metric(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def add_metric(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         'Чтобы создать Метрику, сперва выбери тип метрики.\n'
         'Тип "Числовая" позволит визуализировать данные в виде графика.\n'
@@ -95,7 +95,7 @@ async def finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def add_metric_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         'Создание Метрики отменено.',
         reply_markup=menu_keyboard_markup

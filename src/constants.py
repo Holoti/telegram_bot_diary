@@ -15,14 +15,14 @@ class State(Enum):
 
 
 class Button(Enum):
-    CREATE_METRIC = 'Создать Метрику'
+    ADD_METRIC = 'Создать Метрику'
     LIST_METRIC = 'Список Метрик'
     ADD_ENTRY = 'Добавить запись'
     SETTINGS = 'Настройки'
     ABOUT = 'О проекте'
 
 menu_keyboard = [
-    [Button.CREATE_METRIC.value, Button.LIST_METRIC.value],
+    [Button.ADD_METRIC.value, Button.LIST_METRIC.value],
     [Button.ADD_ENTRY.value],
     [Button.SETTINGS.value, Button.ABOUT.value]
 ]

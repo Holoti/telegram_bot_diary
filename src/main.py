@@ -13,19 +13,23 @@ from constants import (
     State,
     BOT_TOKEN
 )
+from bot_features.add_entry import add_entry, add_entry_cancel
 from bot_features.add_metric import (
     start,
-    create_metric,
+    add_metric,
     select_metric_type,
     select_metric_name,
     select_metric_time,
     skip_metric_time,
-    cancel
+    add_metric_cancel
 )
 from bot_features.about import about
 import logging
+from warnings import filterwarnings
+from telegram.warnings import PTBUserWarning
 
 
+filterwarnings(action="ignore", message=r".*CallbackQueryHandler", category=PTBUserWarning)
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
@@ -44,11 +48,11 @@ def main() -> None:
         .build()
     )
 
-    start_conv_handler = ConversationHandler(
+    add_metric_conversation = ConversationHandler(
         block=False,
         entry_points=[
             CommandHandler("start", start),
-            MessageHandler(filters.Regex(f'^{Button.CREATE_METRIC.value}$'), create_metric)
+            MessageHandler(filters.Regex(f'^{Button.ADD_METRIC.value}$'), add_metric)
         ],
         states={
             State.SELECT_METRIC_TYPE: [CallbackQueryHandler(select_metric_type)],
@@ -58,9 +62,19 @@ def main() -> None:
                 MessageHandler(~filters.Regex('^/skip$') & ~filters.COMMAND, callback=select_metric_time)
             ]
         },
-        fallbacks=[CommandHandler('cancel', cancel)]
+        fallbacks=[CommandHandler('cancel', add_metric_cancel)]
     )
-    application.add_handler(start_conv_handler)
+    application.add_handler(add_metric_conversation)
+
+    add_entry_conversation = ConversationHandler(
+        block=False,
+        entry_points=[
+            MessageHandler(filters.Regex(f'^{Button.ADD_ENTRY.value}$'), add_entry)
+        ],
+        states={},
+        fallbacks=[CommandHandler('cancel', add_entry_cancel)]
+    )
+    application.add_handler(add_entry_conversation)
 
     application.add_handler(MessageHandler(filters.Regex(Button.ABOUT.value), about))
 
