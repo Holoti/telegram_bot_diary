@@ -6,6 +6,9 @@ import datetime
 import re
 
 from constants import State, menu_keyboard_markup
+from metric import Metric
+from constants import MetricType
+from database.queries import db_add_metric
 
 #TODO Сохранять метрики
 #TODO Изучить SQL инъекции
@@ -21,8 +24,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         '<b>Важно: тип нельзя изменить после создания.</b>',
         parse_mode=ParseMode.HTML,
         reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton(text='Числовая', callback_data='Числовая'),
-            InlineKeyboardButton(text='Обычная', callback_data='Обычная')
+            InlineKeyboardButton(text='Числовая', callback_data=MetricType.NUMERIC),
+            InlineKeyboardButton(text='Обычная', callback_data=MetricType.NON_NUMERIC)
         ]])
     )
     return State.SELECT_METRIC_TYPE
@@ -34,14 +37,18 @@ async def add_metric(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'Тип "Числовая" позволит визуализировать данные в виде графика.\n'
         'Ты можешь написать /cancel, чтобы отменить создание Метрики.',
         reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton(text='Числовая', callback_data='Числовая'),
-            InlineKeyboardButton(text='Обычная', callback_data='Обычная')
+            InlineKeyboardButton(text='Числовая', callback_data=MetricType.NUMERIC),
+            InlineKeyboardButton(text='Обычная', callback_data=MetricType.NON_NUMERIC)
         ]])
     )
     return State.SELECT_METRIC_TYPE
 
 
 async def select_metric_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid: int = update.effective_user.id
+    metric = Metric(uid)
+    metric.set_type(update.callback_query.data)
+    context.user_data[uid] = metric
     await update.callback_query.answer()
     await update.callback_query.edit_message_reply_markup()
     await context.bot.send_message(
@@ -53,6 +60,8 @@ async def select_metric_type(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def select_metric_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid: int = update.effective_user.id
+    context.user_data[uid].set_name(update.message.text)
     await update.message.reply_text(
         'Записал. Теперь нужно выбрать время сбора данных.\n'
         'Время должно быть указано в формате hh:mm в часовом поясе МСК.\n' #TODO Сделать выбор часового пояса
@@ -63,6 +72,7 @@ async def select_metric_name(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def select_metric_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid: int = update.effective_user.id
     message_text = update.message.text
     pattern = re.compile('^([0-9]|0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$') # hh:mm | h:mm
     if pattern.match(message_text) is None:
@@ -71,6 +81,9 @@ async def select_metric_time(update: Update, context: ContextTypes.DEFAULT_TYPE)
             'Попробуй ещё раз.'
         )
         return State.SELECT_METRIC_TIME
+    h, m = map(int, update.message.text.split(':'))
+    time = datetime.time(h, m)
+    context.user_data[uid].set_time(time)
     await update.message.reply_text(
         f'Время установлено на {message_text} (МСК).'
     )
@@ -87,6 +100,9 @@ async def skip_metric_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid: int = update.effective_user.id
+    await db_add_metric(context.user_data[uid])
+    # print(context.user_data[uid])
     await update.message.reply_text(
         'Поздравляю! Метрика создана и настроена.\n'
         'Направляю тебя в меню.',
@@ -96,6 +112,8 @@ async def finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def add_metric_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid: int = update.effective_user.id
+    await context.user_data.pop(uid)
     await update.message.reply_text(
         'Создание Метрики отменено.',
         reply_markup=menu_keyboard_markup
